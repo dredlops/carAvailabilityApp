@@ -3,7 +3,7 @@ import pandas as pd
 
 st.set_page_config(page_title="Car Availability Viewer", layout="wide")
 
-# Load data
+# Load and cache the data
 @st.cache_data
 def load_data():
     df = pd.read_excel("results.xlsx")
@@ -14,19 +14,24 @@ def load_data():
 
 df = load_data()
 
-# Sidebar
+# Sidebar filtering
 st.sidebar.title("Filter")
-selected_date = st.sidebar.date_input("Choose a date", value=pd.to_datetime("2025-08-08"))
+selected_date = st.sidebar.date_input("Choose a date (optional)", value=None)
 
-# Filter by selected date
-filtered = df[df['Pickup'].dt.date == selected_date]
+# Filter data if a date is selected
+if selected_date:
+    st.subheader(f"📅 Availability for {selected_date.strftime('%A, %B %d, %Y')}")
+    filtered_df = df[df['Date'] == selected_date]
+else:
+    st.subheader("📅 Full Availability (All Dates)")
+    filtered_df = df.copy()
 
-# Pivot table: rows = Time, columns = Car
-pivot = filtered.pivot_table(index='Time', columns='Car', values='Available', aggfunc='first').fillna("")
+# Pivot: one row per Date + Time
+filtered_df['DateTime'] = pd.to_datetime(filtered_df['Date'].astype(str) + " " + filtered_df['Time'])
+pivot = filtered_df.pivot_table(index=['Date', 'Time'], columns='Car', values='Available', aggfunc='first').fillna("")
 
-# Title
-st.title("🚗 Car Availability Per Hour")
-st.subheader(f"Date: {selected_date.strftime('%A, %B %d, %Y')}")
+# Reset index so Streamlit can render it well
+pivot.reset_index(inplace=True)
 
-# Display table
-st.dataframe(pivot, use_container_width=True, height=600)
+# Show table
+st.dataframe(pivot, use_container_width=True, height=700)
