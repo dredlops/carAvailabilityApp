@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import date
 
 st.set_page_config(page_title="Car Availability Viewer", layout="wide")
 
@@ -13,25 +14,36 @@ def load_data():
     return df
 
 df = load_data()
+today = date.today()
 
 # Sidebar filtering
 st.sidebar.title("Filter")
-selected_date = st.sidebar.date_input("Choose a date (optional)", value=None)
 
-# Filter data if a date is selected
-if selected_date:
+# Use a checkbox to enable date filtering
+filter_by_date = st.sidebar.checkbox("Filter by a specific date", value=False)
+
+if filter_by_date:
+    selected_date = st.sidebar.date_input(
+        "Choose a date",
+        value=today,
+        min_value=today
+    )
     st.subheader(f"📅 Availability for {selected_date.strftime('%A, %B %d, %Y')}")
     filtered_df = df[df['Date'] == selected_date]
 else:
-    st.subheader("📅 Full Availability (All Dates)")
-    filtered_df = df.copy()
+    st.subheader("📅 Full Availability (From Today Onward)")
+    filtered_df = df[df['Date'] >= today]
 
-# Pivot: one row per Date + Time
+# Prepare data for display
 filtered_df['DateTime'] = pd.to_datetime(filtered_df['Date'].astype(str) + " " + filtered_df['Time'])
-pivot = filtered_df.pivot_table(index=['Date', 'Time'], columns='Car', values='Available', aggfunc='first').fillna("")
+pivot = filtered_df.pivot_table(
+    index=['Date', 'Time'],
+    columns='Car',
+    values='Available',
+    aggfunc='first'
+).fillna("")
 
-# Reset index so Streamlit can render it well
 pivot.reset_index(inplace=True)
 
-# Show table
+# Show the table
 st.dataframe(pivot, use_container_width=True, height=700)
