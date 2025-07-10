@@ -19,22 +19,15 @@ today = date.today()
 # Sidebar filtering
 st.sidebar.title("Filter")
 
-# Always show the date picker, but allow "clear filter" behavior
+# Show date picker (always visible)
 selected_date = st.sidebar.date_input(
     "Choose a date (optional)",
     value=today,
     min_value=today
 )
 
-# Filter logic: if user picked today's date and didn’t interact, show all future dates
-# Streamlit doesn’t have a true “None” value for date_input, so we simulate it
-if "selected" not in st.session_state:
-    st.session_state["selected"] = False
-
-if st.sidebar.button("🔍 Filter by selected date"):
-    st.session_state["selected"] = True
-
-if st.session_state["selected"]:
+# Detect whether user changed the date from the default "today"
+if selected_date != today:
     st.subheader(f"📅 Availability for {selected_date.strftime('%A, %B %d, %Y')}")
     filtered_df = df[df['Date'] == selected_date]
 else:
